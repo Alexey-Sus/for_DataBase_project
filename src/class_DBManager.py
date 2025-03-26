@@ -6,24 +6,22 @@ class DBManager:
     в методе, который вызывается последним, поскольку необходимо выполнить по
     очереди все методы, и для них соединение должно оставаться открытым."""
 
-    def __init__(
-        self,
-        dbname="ttttt",
-        user="postgres",
-        password="ghtytGFD45DFVGT",
-        host="localhost",
-        port="5432",
-    ):
-        """Инициализация экземпляров класса сразу с параметрами подключения к БД"""
+    def __init__(self, host, port, database, user_name, password):
+        self.host = host
+        self.port = port
+        self.database = database
+        self.user = user_name
+        self.password = password
+
         try:
             self.conn = psycopg2.connect(
-                dbname=dbname, user=user, password=password,
-                host=host, port=port
+                dbname=self.database, user=self.user, password=self.password,
+                host=self.host, port=self.port
             )
             self.cursor = self.conn.cursor()
 
         except psycopg2.Error as err:
-            print(f"Error connecting to database {dbname}: {err}")
+            print(f"Error connecting to database {self.database}: {err}")
             self.conn = None
             self.cursor = None
 

@@ -16,7 +16,7 @@ user_name = str(os.getenv("USER_NAME"))
 password = str(os.getenv("PASSWORD"))
 
 # создаем общий экземпляр класса для тестирования и вывода на экран соотв. данных
-class_DB = DBManager()
+class_DB = DBManager(host=host, port=port, database=database, user_name=user_name, password=password)
 
 # экземпляры классов для получения данных по API:
 

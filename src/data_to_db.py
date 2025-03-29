@@ -42,32 +42,6 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
             conn.autocommit = True
             cur = conn.cursor()
 
-            if vac_list:
-                column_defs: str = ""
-                for key in vac_list[0].keys():
-                    if str(key) == "salary":
-                        column_defs = column_defs + " " + key + " " + "INT,"
-                    else:
-                        column_defs = column_defs + " " + key + " " + "TEXT,"
-
-                column_defs = column_defs[1: len(column_defs) - 1]
-                columns = list(vac_list[0].keys())
-
-                create_table_query = (
-                    f'CREATE TABLE IF NOT EXISTS "VACANCIES" ({column_defs})'
-                )
-                cur.execute(create_table_query)
-
-                for vacancy in vac_list:
-                    values = []
-
-                    for col in columns:
-                        values.append(str(vacancy[col]))
-
-                    placeholders = ", ".join(["%s"] * len(columns))
-                    insert_query = f'INSERT INTO "VACANCIES" ({(", ").join(columns)}) VALUES ({placeholders})'
-                    cur.execute(insert_query, values)
-
             if empl_list:
                 column_defs = ""
                 for key in empl_list[0].keys():
@@ -76,11 +50,12 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
                     else:
                         column_defs += " " + key + " " + "TEXT,"
 
-                column_defs = column_defs[1: len(column_defs) - 1]
+                column_defs_2 = column_defs[1: len(column_defs) - 1]
+                column_defs_2 = column_defs_2[0:16] + ' PRIMARY KEY, ' + column_defs_2[18:]
                 columns = list(empl_list[0].keys())
 
                 create_table_query = (
-                    f'CREATE TABLE IF NOT EXISTS "EMPLOYERS" ({column_defs})'
+                    f'CREATE TABLE IF NOT EXISTS "EMPLOYERS" ({column_defs_2})'
                 )
                 cur.execute(create_table_query)
 
@@ -93,10 +68,47 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
                     placeholders = ", ".join(["%s"] * len(columns))
                     insert_query = f'INSERT INTO "EMPLOYERS" ({(", ").join(columns)}) VALUES ({placeholders})'
                     cur.execute(insert_query, values)
+                    conn.commit()
+
+            if vac_list:
+                column_defs: str = ""
+                for key in vac_list[0].keys():
+                    if str(key) == "salary":
+                        column_defs = column_defs + " " + key + " " + "INT,"
+                    else:
+                        column_defs = column_defs + " " + key + " " + "TEXT,"
+
+                column_defs_1 = column_defs[1: len(column_defs) - 1]
+                column_defs_1 = column_defs_1 + (', FOREIGN KEY(employer_id) REFERENCES "EMPLOYERS"(employer_id)')
+
+                columns = list(vac_list[0].keys())
+
+                create_table_query = (
+                    f'CREATE TABLE IF NOT EXISTS "VACANCIES" ({column_defs_1})'
+                )
+                cur.execute(create_table_query)
+                conn.commit()
+
+                for vacancy in vac_list:
+                    employer_id = vacancy['employer_id']
+                    cur.execute('SELECT 1 FROM "EMPLOYERS" WHERE employer_id = %s',
+                                (employer_id,))
+                    employer_exists = cur.fetchone()
+                    if employer_exists:
+                        values = []
+
+                        for col in columns:
+                            values.append(str(vacancy[col]))
+
+                        placeholders = ", ".join(["%s"] * len(columns))
+                        insert_query = f'INSERT INTO "VACANCIES" ({(", ").join(columns)}) VALUES ({placeholders})'
+                        cur.execute(insert_query, values)
+                    else:
+                        pass
 
             cur.close()
             conn.close()
-            return f"Database {dbname} hasnt existed but created AND two tables have been created and populated"
+            return (f"Database {dbname} hasnt existed but created AND two tables have been created and populated")
 
         else:
             conn.close()  # закрываем подключение к общей базе данных и подключаемся к БД,
@@ -106,41 +118,6 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
             )
             conn.autocommit = True
             cur = conn.cursor()
-
-            # проверяем, существует ли таблица VACANCIES. Если да, в нее ничего не пишем.
-            # это делается для того, чтобы избежать записи одинаковых строк в таблицу
-            # при множественном выполнении кода.
-            table_exists_query = ("SELECT 1 FROM pg_tables WHERE "
-                                  "schemaname = 'public' AND tablename = 'VACANCIES';")
-            cur.execute(table_exists_query)
-            table_exists = cur.fetchone()
-
-            if not table_exists:
-                if vac_list:
-                    column_defs = ""
-                    for key in vac_list[0].keys():
-                        if str(key) == "salary":
-                            column_defs = column_defs + " " + key + " " + "INT,"
-                        else:
-                            column_defs = column_defs + " " + key + " " + "TEXT,"
-
-                    column_defs = column_defs[1: len(column_defs) - 1]
-                    columns = list(vac_list[0].keys())
-
-                    create_table_query = (
-                        f'CREATE TABLE IF NOT EXISTS "VACANCIES" ({column_defs})'
-                    )
-                    cur.execute(create_table_query)
-
-                    for vacancy in vac_list:
-                        values = []
-
-                        for col in columns:
-                            values.append(str(vacancy[col]))
-
-                        placeholders = ", ".join(["%s"] * len(columns))
-                        insert_query = f'INSERT INTO "VACANCIES" ({(", ").join(columns)}) VALUES ({placeholders})'
-                        cur.execute(insert_query, values)
 
             # проверяем, существует ли таблица EMPLOYERS. Если да, в нее ничего не пишем.
             # это делается для того, чтобы избежать записи одинаковых строк в таблицу
@@ -159,13 +136,15 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
                         else:
                             column_defs += " " + key + " " + "TEXT,"
 
-                    column_defs = column_defs[1: len(column_defs) - 1]
+                    column_defs_2 = column_defs[1: len(column_defs) - 1]
+                    column_defs_2 = column_defs_2[0:16] + ' PRIMARY KEY, ' + column_defs_2[18:]
                     columns = list(empl_list[0].keys())
 
                     create_table_query = (
-                        f'CREATE TABLE IF NOT EXISTS "EMPLOYERS" ({column_defs})'
+                        f'CREATE TABLE IF NOT EXISTS "EMPLOYERS" ({column_defs_2})'
                     )
                     cur.execute(create_table_query)
+                    conn.commit()
 
                     for empl in empl_list:
                         values = []
@@ -176,17 +155,62 @@ def create_database_and_tables(dbname: str, user: str, password: str, host: str,
                         placeholders = ", ".join(["%s"] * len(columns))
                         insert_query = f'INSERT INTO "EMPLOYERS" ({(", ").join(columns)}) VALUES ({placeholders})'
                         cur.execute(insert_query, values)
+                        conn.commit()
+
+            # проверяем, существует ли таблица VACANCIES. Если да, в нее ничего не пишем.
+            # это делается для того, чтобы избежать записи одинаковых строк в таблицу
+            # при множественном выполнении кода.
+            table_exists_query = ("SELECT 1 FROM pg_tables WHERE "
+                                  "schemaname = 'public' AND tablename = 'VACANCIES';")
+            cur.execute(table_exists_query)
+            table_exists = cur.fetchone()
+
+            if not table_exists:
+                if vac_list:
+                    column_defs = ""
+                    for key in vac_list[0].keys():
+                        if str(key) == "salary":
+                            column_defs = column_defs + " " + key + " " + "INT,"
+                        else:
+                            column_defs = column_defs + " " + key + " " + "TEXT,"
+
+                    column_defs_1 = column_defs[1: len(column_defs) - 1]
+                    column_defs_1 = column_defs_1 + (', FOREIGN KEY(employer_id) REFERENCES "EMPLOYERS"(employer_id)')
+
+                    columns = list(vac_list[0].keys())
+
+                    create_table_query = (
+                        f'CREATE TABLE IF NOT EXISTS "VACANCIES" ({column_defs_1})'
+                    )
+                    cur.execute(create_table_query)
+
+                    for vacancy in vac_list:
+                        employer_id = vacancy['employer_id']
+                        cur.execute('SELECT 1 FROM "EMPLOYERS" WHERE employer_id = %s',
+                                    (employer_id,))
+                        employer_exists = cur.fetchone()
+                        if employer_exists:
+                            values = []
+
+                            for col in columns:
+                                values.append(str(vacancy[col]))
+
+                            placeholders = ", ".join(["%s"] * len(columns))
+                            insert_query = f'INSERT INTO "VACANCIES" ({(", ").join(columns)}) VALUES ({placeholders})'
+                            cur.execute(insert_query, values)
+                        else:
+                            pass
 
             cur.close()
             conn.close()
-            return f"Database {dbname} HAS EXISTED already AND two tables have been created and populated"
+            if not table_exists:
+                return (f"Database {dbname} HAS EXISTED already AND two tables have been created and populated")
+            else:
+                return (f"Database {dbname} and the two tables HAVE EXISTED already, so no data population"
+                        f" has been executed")
 
     except psycopg2.Error as e:
         return f"Error checking database existence: {e}"
-
-    # finally:
-    #     if conn == True:
-    #         conn.close()
 
 
 if __name__ == "__main__":
@@ -203,7 +227,7 @@ if __name__ == "__main__":
     # вводим все нужные переменные для подключения к базе данных
     host = "localhost"
     port = "5432"
-    database = "ttttt"
+    database = "pppp"
     user_name = "postgres"
     password = "ghtytGFD45DFVGT"
 

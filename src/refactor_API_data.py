@@ -52,3 +52,5 @@ if __name__ == "__main__":
     print("Список вакансий:")
     for vacancy in vacancies:
         print(vacancy)
+
+    print(create_shortened_list_of_vacancies({}))

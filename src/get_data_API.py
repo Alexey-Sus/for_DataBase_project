@@ -44,20 +44,8 @@ class HHEmployerAPI(AbstractVacEmplAPI):
     def get_employers(self) -> list:
         """Метод для получения raw-словарика данных по работодателям от hh.ru"""
 
-        list_empl_ids: list[str] = [
-            "804242",
-            "11680",
-            "681319",
-            "4087312",
-            "4299478",
-            "99437",
-            "1994",
-            "1684993",
-            "5648224",
-            "3508081",
-            "4469213",
-            "11484523",
-        ]
+        list_empl_ids: list[str] =['540381', '4128276', '1781787', '9513229', '10952595', '3093585',
+                                   '3959796', '827187', '11545019']
 
         list_empl: list = []
 
@@ -76,11 +64,14 @@ class HHEmployerAPI(AbstractVacEmplAPI):
                 empl_dict["open_vacancies"] = employer.get("open_vacancies")
                 list_empl.append(empl_dict)
 
-        return list_empl
 
-        return []
+        return list_empl
 
 
 if __name__ == "__main__":
     hh_empl = HHEmployerAPI()
     print(hh_empl.get_employers())
+    print()
+
+    hh_vac = HHVacancyAPI()
+    print(hh_vac.get_vacancies())
